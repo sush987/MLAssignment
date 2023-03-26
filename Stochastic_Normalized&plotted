@@ -1,0 +1,65 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def sigmoid(z):
+    """
+    Compute sigmoid function to squash the input into [0, 1] range.
+    """
+    z = np.clip(z, -500, 500) # clip values to prevent overflow/underflow errors
+    return 1 / (1 + np.exp(-z))
+
+def stochastic_gradient_descent(X, y, alpha, epochs):
+    """
+    Train a logistic regression model using stochastic gradient descent.
+    """
+    m, n = X.shape
+    theta = np.zeros(n)
+    costs = []
+    for epoch in range(epochs):
+        for i in range(m):
+            h = sigmoid(np.dot(X[i], theta))
+            error = h - y[i]
+            gradient = X[i] * error
+            theta -= alpha * gradient
+            cost = -1/m * (y.dot(np.log(h)) + (1-y).dot(np.log(1-h)))
+            costs.append(cost)
+    return theta, costs
+
+# Load the dataset
+url = 'https://drive.google.com/file/d/1iPAmd0wPdbgW9nFlarHXRBLYzFVwvjyK/view?usp=sharing'
+file_id = url.split('/')[-2]
+dwn_url = 'https://drive.google.com/uc?id=' + file_id
+df = pd.read_csv(dwn_url)
+
+# Extract the feature matrix and labels
+X = df.drop(['diagnosis'], axis=1).values
+y = df['diagnosis'].values
+
+# Convert labels to numerical values
+y = np.where(y == 'M', 1, 0)
+# normalize the data
+X = df.drop(['diagnosis'], axis=1).values
+X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+# Add intercept term
+X = np.hstack((np.ones((X.shape[0], 1)), X))
+
+# Train model using stochastic gradient descent
+theta, costs = stochastic_gradient_descent(X, y, 0.01, 100)
+
+# Plot learning curve
+plt.plot(costs)
+plt.xlabel('Iterations')
+plt.ylabel('Cost')
+plt.title('Stochastic Gradient Descent Learning Curve')
+plt.show()
+
+# Compute the accuracy, precision, and recall on the training set
+y_pred = np.round(sigmoid(X.dot(theta)))
+accuracy = (y_pred == y).mean()
+precision = (y_pred[y == 1] == y[y == 1]).mean()
+recall = (y_pred[y == 1] == y[y == 1]).sum() / y.sum()
+print(f'Training accuracy: {accuracy}')
+print(f'Training precision: {precision}')
+print(f'Training recall: {recall}')
