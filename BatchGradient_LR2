@@ -1,0 +1,76 @@
+import numpy as np
+import pandas as pd
+
+# define the sigmoid function
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+class LogisticRegression:
+    
+    def __init__(self, learning_rate=0.1, num_iterations=1000):
+        self.learning_rate = learning_rate
+        self.num_iterations = num_iterations
+    
+    def fit(self, X, y):
+        m, n = X.shape
+        self.theta = np.zeros(n)
+        
+        for i in range(self.num_iterations):
+            z = np.dot(X, self.theta)
+            h = sigmoid(z)
+            gradient = np.dot(X.T, (h - y)) / m
+            self.theta -= self.learning_rate * gradient
+    
+    def predict(self, X, threshold=0.5):
+        z = np.dot(X, self.theta)
+        h = sigmoid(z)
+        return (h >= threshold).astype(int)
+    
+    def accuracy(self, X, y, threshold=0.5):
+        y_pred = self.predict(X, threshold=threshold)
+        return np.mean(y_pred == y)
+    
+    def precision(self, X, y, threshold=0.5):
+        y_pred = self.predict(X, threshold=threshold)
+        tp = np.sum((y_pred == 1) & (y == 1))
+        fp = np.sum((y_pred == 1) & (y == 0))
+        return tp / (tp + fp)
+    
+    def recall(self, X, y, threshold=0.5):
+        y_pred = self.predict(X, threshold=threshold)
+        tp = np.sum((y_pred == 1) & (y == 1))
+        fn = np.sum((y_pred == 0) & (y == 1))
+        return tp / (tp + fn)
+
+# load the dataset
+url = 'https://drive.google.com/file/d/1iPAmd0wPdbgW9nFlarHXRBLYzFVwvjyK/view?usp=sharing'
+file_id = url.split('/')[-2]
+dwn_url = 'https://drive.google.com/uc?id=' + file_id
+df = pd.read_csv(dwn_url)
+
+# normalize the data
+X = df.drop(['diagnosis'], axis=1).values
+X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+# prepare the labels
+y = df['diagnosis'].apply(lambda x: 1 if x == 'M' else 0).values
+
+# split the data into training and testing sets
+np.random.seed(123)
+shuffle_idx = np.random.permutation(len(X))
+train_size = int(len(X) * 0.8)
+X_train, y_train = X[shuffle_idx[:train_size]], y[shuffle_idx[:train_size]]
+X_test, y_test = X[shuffle_idx[train_size:]], y[shuffle_idx[train_size:]]
+
+# train the logistic regression model
+lr = LogisticRegression(learning_rate=0.1, num_iterations=1000)
+lr.fit(X_train, y_train)
+
+# evaluate the model on the testing set
+accuracy = lr.accuracy(X_test, y_test)
+precision = lr.precision(X_test, y_test)
+recall = lr.recall(X_test, y_test)
+
+print(f'Testing accuracy: {accuracy:.2f}')
+print(f'Testing precision: {precision:.2f}')
+print(f'Testing recall: {recall:.2f}')
