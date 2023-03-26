@@ -1,0 +1,89 @@
+import numpy as np
+import pandas as pd
+
+# Load the dataset
+url = 'https://drive.google.com/file/d/1iPAmd0wPdbgW9nFlarHXRBLYzFVwvjyK/view?usp=sharing'
+file_id = url.split('/')[-2]
+dwn_url = 'https://drive.google.com/uc?id=' + file_id
+df = pd.read_csv(dwn_url)
+
+# Extract the feature matrix and labels
+X = df.drop(['diagnosis'], axis=1).values
+y = df['diagnosis'].values
+
+# Convert labels to numerical values
+y = np.where(y == 'M', 1, 0)
+
+# normalize the data
+X = df.drop(['diagnosis'], axis=1).values
+X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+
+# Define sigmoid function
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+# Define cost function
+def cost_function(X, y, theta):
+    m = len(y)
+    h = sigmoid(X.dot(theta))
+    J = -1/m * (y.dot(np.log(h)) + (1-y).dot(np.log(1-h)))
+    return J
+
+# Define mini-batch gradient descent function
+def minibatch_gradient_descent(X, y, alpha, epochs, batch_size):
+    m, n = X.shape
+    theta = np.zeros(n)
+    costs = []
+    for i in range(epochs):
+        batch_indices = np.random.choice(m, batch_size, replace=False)
+        X_batch = X[batch_indices]
+        y_batch = y[batch_indices]
+        h = sigmoid(X_batch.dot(theta))
+        gradient = X_batch.T.dot(h - y_batch) / batch_size
+        theta -= alpha * gradient
+        cost = cost_function(X_batch, y_batch, theta)
+        costs.append(cost)
+    return theta, costs
+
+
+# Set hyperparameters
+alpha = 0.001
+epochs = 1000
+batch_size = 32
+
+# Split the data into training and testing sets
+np.random.seed(123)
+shuffle_idx = np.random.permutation(len(X))
+train_size = int(len(X) * 0.8)
+X_train, y_train = X[shuffle_idx[:train_size]], y[shuffle_idx[:train_size]]
+X_test, y_test = X[shuffle_idx[train_size:]], y[shuffle_idx[train_size:]]
+
+# Run mini-batch gradient descent on the training set
+# Run mini-batch gradient descent
+theta, costs = minibatch_gradient_descent(X, y, alpha, epochs, batch_size)
+
+# compute accuracy, precision, and recall
+y_pred = np.round(sigmoid(X.dot(theta)))
+accuracy = np.mean(y_pred == y)
+precision = np.sum((y_pred == 1) & (y == 1)) / np.sum(y_pred == 1)
+recall = np.sum((y_pred == 1) & (y == 1)) / np.sum(y == 1)
+print(f'Accuracy for alpha = {alpha}: {accuracy:.3f}')
+print(f'Precision for alpha = {alpha}: {precision:.3f}')
+print(f'Recall for alpha = {alpha}: {recall:.3f}')
+
+
+print(f'Testing accuracy: {accuracy:.2f}')
+print(f'Precision: {precision:.2f}')
+print(f'Recall: {recall:.2f}')
+
+# Print the learned parameters
+print('Learned Parameters:')
+print(theta)
+
+# Plot the learning curve
+import matplotlib.pyplot as plt
+plt.plot(costs)
+plt.xlabel('Iterations')
+plt.ylabel('Cost')
+plt.title('Learning Curve')
+plt.show()
